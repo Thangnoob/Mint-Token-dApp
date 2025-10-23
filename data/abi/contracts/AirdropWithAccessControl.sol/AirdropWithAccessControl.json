@@ -1,6 +1,17 @@
 [
     {
-        "inputs": [],
+        "inputs": [
+            {
+                "internalType": "address",
+                "name": "tokenAddress",
+                "type": "address"
+            },
+            {
+                "internalType": "bytes32",
+                "name": "root",
+                "type": "bytes32"
+            }
+        ],
         "stateMutability": "nonpayable",
         "type": "constructor"
     },
@@ -26,89 +37,33 @@
         "type": "error"
     },
     {
-        "inputs": [
-            {
-                "internalType": "address",
-                "name": "spender",
-                "type": "address"
-            },
-            {
-                "internalType": "uint256",
-                "name": "allowance",
-                "type": "uint256"
-            },
-            {
-                "internalType": "uint256",
-                "name": "needed",
-                "type": "uint256"
-            }
-        ],
-        "name": "ERC20InsufficientAllowance",
+        "inputs": [],
+        "name": "AirdropPaused",
         "type": "error"
     },
     {
-        "inputs": [
-            {
-                "internalType": "address",
-                "name": "sender",
-                "type": "address"
-            },
-            {
-                "internalType": "uint256",
-                "name": "balance",
-                "type": "uint256"
-            },
-            {
-                "internalType": "uint256",
-                "name": "needed",
-                "type": "uint256"
-            }
-        ],
-        "name": "ERC20InsufficientBalance",
+        "inputs": [],
+        "name": "AlreadyClaimed",
         "type": "error"
     },
     {
-        "inputs": [
-            {
-                "internalType": "address",
-                "name": "approver",
-                "type": "address"
-            }
-        ],
-        "name": "ERC20InvalidApprover",
+        "inputs": [],
+        "name": "ExceedsMaxClaimAmount",
         "type": "error"
     },
     {
-        "inputs": [
-            {
-                "internalType": "address",
-                "name": "receiver",
-                "type": "address"
-            }
-        ],
-        "name": "ERC20InvalidReceiver",
+        "inputs": [],
+        "name": "InvalidProof",
         "type": "error"
     },
     {
-        "inputs": [
-            {
-                "internalType": "address",
-                "name": "sender",
-                "type": "address"
-            }
-        ],
-        "name": "ERC20InvalidSender",
+        "inputs": [],
+        "name": "Unauthorized",
         "type": "error"
     },
     {
-        "inputs": [
-            {
-                "internalType": "address",
-                "name": "spender",
-                "type": "address"
-            }
-        ],
-        "name": "ERC20InvalidSpender",
+        "inputs": [],
+        "name": "ZeroAmount",
         "type": "error"
     },
     {
@@ -117,32 +72,7 @@
             {
                 "indexed": true,
                 "internalType": "address",
-                "name": "owner",
-                "type": "address"
-            },
-            {
-                "indexed": true,
-                "internalType": "address",
-                "name": "spender",
-                "type": "address"
-            },
-            {
-                "indexed": false,
-                "internalType": "uint256",
-                "name": "value",
-                "type": "uint256"
-            }
-        ],
-        "name": "Approval",
-        "type": "event"
-    },
-    {
-        "anonymous": false,
-        "inputs": [
-            {
-                "indexed": true,
-                "internalType": "address",
-                "name": "from",
+                "name": "account",
                 "type": "address"
             },
             {
@@ -152,7 +82,7 @@
                 "type": "uint256"
             }
         ],
-        "name": "Burn",
+        "name": "Claimed",
         "type": "event"
     },
     {
@@ -161,7 +91,7 @@
             {
                 "indexed": true,
                 "internalType": "address",
-                "name": "to",
+                "name": "token",
                 "type": "address"
             },
             {
@@ -171,7 +101,39 @@
                 "type": "uint256"
             }
         ],
-        "name": "Mint",
+        "name": "EmergencyWithdraw",
+        "type": "event"
+    },
+    {
+        "anonymous": false,
+        "inputs": [
+            {
+                "indexed": false,
+                "internalType": "uint256",
+                "name": "oldAmount",
+                "type": "uint256"
+            },
+            {
+                "indexed": false,
+                "internalType": "uint256",
+                "name": "newAmount",
+                "type": "uint256"
+            }
+        ],
+        "name": "MaxClaimAmountUpdated",
+        "type": "event"
+    },
+    {
+        "anonymous": false,
+        "inputs": [
+            {
+                "indexed": true,
+                "internalType": "address",
+                "name": "account",
+                "type": "address"
+            }
+        ],
+        "name": "Paused",
         "type": "event"
     },
     {
@@ -255,28 +217,29 @@
             {
                 "indexed": true,
                 "internalType": "address",
-                "name": "from",
+                "name": "account",
                 "type": "address"
-            },
-            {
-                "indexed": true,
-                "internalType": "address",
-                "name": "to",
-                "type": "address"
-            },
-            {
-                "indexed": false,
-                "internalType": "uint256",
-                "name": "value",
-                "type": "uint256"
             }
         ],
-        "name": "Transfer",
+        "name": "Unpaused",
         "type": "event"
     },
     {
         "inputs": [],
-        "name": "BURNER_ROLE",
+        "name": "ADMIN_ROLE",
+        "outputs": [
+            {
+                "internalType": "bytes32",
+                "name": "",
+                "type": "bytes32"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [],
+        "name": "CLAIM_MANAGER_ROLE",
         "outputs": [
             {
                 "internalType": "bytes32",
@@ -302,7 +265,7 @@
     },
     {
         "inputs": [],
-        "name": "MINTER_ROLE",
+        "name": "PAUSER_ROLE",
         "outputs": [
             {
                 "internalType": "bytes32",
@@ -317,40 +280,21 @@
         "inputs": [
             {
                 "internalType": "address",
-                "name": "owner",
-                "type": "address"
-            },
-            {
-                "internalType": "address",
-                "name": "spender",
-                "type": "address"
-            }
-        ],
-        "name": "allowance",
-        "outputs": [
-            {
-                "internalType": "uint256",
-                "name": "",
-                "type": "uint256"
-            }
-        ],
-        "stateMutability": "view",
-        "type": "function"
-    },
-    {
-        "inputs": [
-            {
-                "internalType": "address",
-                "name": "spender",
+                "name": "account",
                 "type": "address"
             },
             {
                 "internalType": "uint256",
-                "name": "value",
+                "name": "amount",
                 "type": "uint256"
+            },
+            {
+                "internalType": "bytes32[]",
+                "name": "merkleProof",
+                "type": "bytes32[]"
             }
         ],
-        "name": "approve",
+        "name": "canClaim",
         "outputs": [
             {
                 "internalType": "bool",
@@ -358,57 +302,38 @@
                 "type": "bool"
             }
         ],
-        "stateMutability": "nonpayable",
-        "type": "function"
-    },
-    {
-        "inputs": [
-            {
-                "internalType": "address",
-                "name": "account",
-                "type": "address"
-            }
-        ],
-        "name": "balanceOf",
-        "outputs": [
-            {
-                "internalType": "uint256",
-                "name": "",
-                "type": "uint256"
-            }
-        ],
         "stateMutability": "view",
         "type": "function"
     },
     {
         "inputs": [
             {
-                "internalType": "address",
-                "name": "from",
-                "type": "address"
+                "internalType": "uint256",
+                "name": "amount",
+                "type": "uint256"
             },
+            {
+                "internalType": "bytes32[]",
+                "name": "merkleProof",
+                "type": "bytes32[]"
+            }
+        ],
+        "name": "claim",
+        "outputs": [],
+        "stateMutability": "nonpayable",
+        "type": "function"
+    },
+    {
+        "inputs": [
             {
                 "internalType": "uint256",
                 "name": "amount",
                 "type": "uint256"
             }
         ],
-        "name": "burn",
+        "name": "emergencyWithdraw",
         "outputs": [],
         "stateMutability": "nonpayable",
-        "type": "function"
-    },
-    {
-        "inputs": [],
-        "name": "decimals",
-        "outputs": [
-            {
-                "internalType": "uint8",
-                "name": "",
-                "type": "uint8"
-            }
-        ],
-        "stateMutability": "view",
         "type": "function"
     },
     {
@@ -431,6 +356,32 @@
         "type": "function"
     },
     {
+        "inputs": [],
+        "name": "getStatus",
+        "outputs": [
+            {
+                "internalType": "bool",
+                "name": "",
+                "type": "bool"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [],
+        "name": "getTotalClaims",
+        "outputs": [
+            {
+                "internalType": "uint256",
+                "name": "",
+                "type": "uint256"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
         "inputs": [
             {
                 "internalType": "address",
@@ -438,7 +389,7 @@
                 "type": "address"
             }
         ],
-        "name": "grantBurnerRole",
+        "name": "grantAdminRole",
         "outputs": [],
         "stateMutability": "nonpayable",
         "type": "function"
@@ -451,7 +402,20 @@
                 "type": "address"
             }
         ],
-        "name": "grantMinterRole",
+        "name": "grantClaimManagerRole",
+        "outputs": [],
+        "stateMutability": "nonpayable",
+        "type": "function"
+    },
+    {
+        "inputs": [
+            {
+                "internalType": "address",
+                "name": "account",
+                "type": "address"
+            }
+        ],
+        "name": "grantPauserRole",
         "outputs": [],
         "stateMutability": "nonpayable",
         "type": "function"
@@ -472,6 +436,25 @@
         "name": "grantRole",
         "outputs": [],
         "stateMutability": "nonpayable",
+        "type": "function"
+    },
+    {
+        "inputs": [
+            {
+                "internalType": "address",
+                "name": "account",
+                "type": "address"
+            }
+        ],
+        "name": "hasClaimed",
+        "outputs": [
+            {
+                "internalType": "bool",
+                "name": "",
+                "type": "bool"
+            }
+        ],
+        "stateMutability": "view",
         "type": "function"
     },
     {
@@ -502,31 +485,65 @@
         "inputs": [
             {
                 "internalType": "address",
-                "name": "to",
+                "name": "",
                 "type": "address"
-            },
-            {
-                "internalType": "uint256",
-                "name": "amount",
-                "type": "uint256"
             }
         ],
-        "name": "mint",
-        "outputs": [],
-        "stateMutability": "nonpayable",
+        "name": "isClaimed",
+        "outputs": [
+            {
+                "internalType": "bool",
+                "name": "",
+                "type": "bool"
+            }
+        ],
+        "stateMutability": "view",
         "type": "function"
     },
     {
         "inputs": [],
-        "name": "name",
+        "name": "isPaused",
         "outputs": [
             {
-                "internalType": "string",
+                "internalType": "bool",
                 "name": "",
-                "type": "string"
+                "type": "bool"
             }
         ],
         "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [],
+        "name": "maxClaimAmount",
+        "outputs": [
+            {
+                "internalType": "uint256",
+                "name": "",
+                "type": "uint256"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [],
+        "name": "merkleRoot",
+        "outputs": [
+            {
+                "internalType": "bytes32",
+                "name": "",
+                "type": "bytes32"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [],
+        "name": "pause",
+        "outputs": [],
+        "stateMutability": "nonpayable",
         "type": "function"
     },
     {
@@ -555,7 +572,7 @@
                 "type": "address"
             }
         ],
-        "name": "revokeBurnerRole",
+        "name": "revokeAdminRole",
         "outputs": [],
         "stateMutability": "nonpayable",
         "type": "function"
@@ -568,7 +585,20 @@
                 "type": "address"
             }
         ],
-        "name": "revokeMinterRole",
+        "name": "revokeClaimManagerRole",
+        "outputs": [],
+        "stateMutability": "nonpayable",
+        "type": "function"
+    },
+    {
+        "inputs": [
+            {
+                "internalType": "address",
+                "name": "account",
+                "type": "address"
+            }
+        ],
+        "name": "revokePauserRole",
         "outputs": [],
         "stateMutability": "nonpayable",
         "type": "function"
@@ -594,6 +624,19 @@
     {
         "inputs": [
             {
+                "internalType": "uint256",
+                "name": "newMaxAmount",
+                "type": "uint256"
+            }
+        ],
+        "name": "setMaxClaimAmount",
+        "outputs": [],
+        "stateMutability": "nonpayable",
+        "type": "function"
+    },
+    {
+        "inputs": [
+            {
                 "internalType": "bytes4",
                 "name": "interfaceId",
                 "type": "bytes4"
@@ -612,12 +655,12 @@
     },
     {
         "inputs": [],
-        "name": "symbol",
+        "name": "token",
         "outputs": [
             {
-                "internalType": "string",
+                "internalType": "contract IERC20",
                 "name": "",
-                "type": "string"
+                "type": "address"
             }
         ],
         "stateMutability": "view",
@@ -625,7 +668,7 @@
     },
     {
         "inputs": [],
-        "name": "totalSupply",
+        "name": "totalClaimed",
         "outputs": [
             {
                 "internalType": "uint256",
@@ -637,55 +680,9 @@
         "type": "function"
     },
     {
-        "inputs": [
-            {
-                "internalType": "address",
-                "name": "to",
-                "type": "address"
-            },
-            {
-                "internalType": "uint256",
-                "name": "value",
-                "type": "uint256"
-            }
-        ],
-        "name": "transfer",
-        "outputs": [
-            {
-                "internalType": "bool",
-                "name": "",
-                "type": "bool"
-            }
-        ],
-        "stateMutability": "nonpayable",
-        "type": "function"
-    },
-    {
-        "inputs": [
-            {
-                "internalType": "address",
-                "name": "from",
-                "type": "address"
-            },
-            {
-                "internalType": "address",
-                "name": "to",
-                "type": "address"
-            },
-            {
-                "internalType": "uint256",
-                "name": "value",
-                "type": "uint256"
-            }
-        ],
-        "name": "transferFrom",
-        "outputs": [
-            {
-                "internalType": "bool",
-                "name": "",
-                "type": "bool"
-            }
-        ],
+        "inputs": [],
+        "name": "unpause",
+        "outputs": [],
         "stateMutability": "nonpayable",
         "type": "function"
     }

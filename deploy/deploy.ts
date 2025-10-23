@@ -25,16 +25,22 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     skipIfAlreadyDeployed: false,
   });
 
-  // Read Merkle root from merkle.json
-  const merkleData = JSON.parse(readFileSync("merkle.json", "utf8"));
+  // Read merkle tree data from files
+  const merkleData = JSON.parse(readFileSync("scripts/merkle/merkle.json", "utf8"));
   const merkleRoot = merkleData.root;
 
-  // Deploy MerkleDistributor
+  // Read recipients data for reference
+  const recipientsData = merkleData.recipients || [];
+
+  console.log("Merkle Root:", merkleRoot);
+  console.log("Recipients count:", recipientsData.length);
+
+  // Deploy AirdropWithAccessControl
   console.log("====================");
-  console.log("Deploy MerkleDistributor Contract");
+  console.log("Deploy AirdropWithAccessControl Contract");
   console.log("====================");
-  const distributorDeployment = await deploy("MerkleDistributor", {
-    contract: "MerkleDistributor",
+  const airdropDeployment = await deploy("AirdropWithAccessControl", {
+    contract: "AirdropWithAccessControl",
     from: deployer,
     args: [tokenDeployment.address, merkleRoot],
     log: true,
@@ -42,23 +48,36 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     skipIfAlreadyDeployed: false,
   });
 
-  // Mint tokens to MerkleDistributor
-  const totalAmount = merkleData.proofs.reduce(
-    (sum: bigint, proof: { amount: string }) => sum + BigInt(proof.amount),
-    BigInt(0)
-  );
+  // Grant MINTER_ROLE to airdrop contract
   const tokenContract = await ethers.getContractAt("MyMintableToken", tokenDeployment.address);
-  await tokenContract.mint(distributorDeployment.address, totalAmount);
-  console.log(`Minted ${totalAmount} tokens to MerkleDistributor at ${distributorDeployment.address}`);
+  await tokenContract.grantMinterRole(airdropDeployment.address);
+  console.log("Granted MINTER_ROLE to AirdropWithAccessControl contract");
+
+  // No need to mint tokens beforehand - they will be minted when claimed
+  console.log("Tokens will be minted when users claim");
 
   // Save deployment info
   const deploymentInfo = {
+    network: hre.network.name,
     tokenAddress: tokenDeployment.address,
-    distributorAddress: distributorDeployment.address,
+    airdropAddress: airdropDeployment.address,
     merkleRoot,
+    recipients: recipientsData,
+    merkleTree: merkleData,
   };
-  writeFileSync("deployment.json", JSON.stringify(deploymentInfo, null, 2));
-  console.log("Deployment info saved to deployment.json");
+
+  const deploymentFile = `deployments/${hre.network.name}/AirdropWithAccessControl.json`;
+  writeFileSync(deploymentFile, JSON.stringify(deploymentInfo, null, 2));
+  console.log(`Deployment info saved to ${deploymentFile}`);
+
+  // Display contract addresses
+  console.log("====================");
+  console.log("Deployment Summary");
+  console.log("====================");
+  console.log("Token Address:", tokenDeployment.address);
+  console.log("Airdrop Address:", airdropDeployment.address);
+  console.log("Merkle Root:", merkleRoot);
+  console.log("Recipients:", recipientsData.length);
 };
 
 func.tags = ["deploy"];

@@ -20,12 +20,6 @@
         "inputs": [
             {
                 "indexed": false,
-                "internalType": "uint256",
-                "name": "index",
-                "type": "uint256"
-            },
-            {
-                "indexed": false,
                 "internalType": "address",
                 "name": "account",
                 "type": "address"
@@ -42,16 +36,6 @@
     },
     {
         "inputs": [
-            {
-                "internalType": "uint256",
-                "name": "index",
-                "type": "uint256"
-            },
-            {
-                "internalType": "address",
-                "name": "account",
-                "type": "address"
-            },
             {
                 "internalType": "uint256",
                 "name": "amount",
@@ -71,9 +55,9 @@
     {
         "inputs": [
             {
-                "internalType": "uint256",
-                "name": "index",
-                "type": "uint256"
+                "internalType": "address",
+                "name": "",
+                "type": "address"
             }
         ],
         "name": "isClaimed",

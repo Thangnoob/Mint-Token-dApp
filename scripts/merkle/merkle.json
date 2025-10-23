@@ -1,0 +1,26 @@
+{
+  "root": "0xdf6c5ae8ffc6e4c63620c95de5dc17292777d413e673ebe3205b764ffdc230fb",
+  "recipients": [
+    {
+      "address": "0x1C45Ca420ff41E9E8880B1d5ef72851869028d95",
+      "amount": "2000000000000000000",
+      "proof": [
+        "0xa81f93899cc05b6a04ec36b577eea61acb5db7f8807f688e42bbadfc0194ea52"
+      ]
+    },
+    {
+      "address": "0x5693BE2FB2046850739D2c1A6167e95d34070d7e",
+      "amount": "3000000000000000000",
+      "proof": [
+        "0x5a9e01a55d6c65ad8eb9a5e4606654e0d4fa2cbc5b5523612faf254f0a32a657"
+      ]
+    }
+  ],
+  "tree": {
+    "leaves": [
+      "0x5a9e01a55d6c65ad8eb9a5e4606654e0d4fa2cbc5b5523612faf254f0a32a657",
+      "0xa81f93899cc05b6a04ec36b577eea61acb5db7f8807f688e42bbadfc0194ea52"
+    ],
+    "root": "0xdf6c5ae8ffc6e4c63620c95de5dc17292777d413e673ebe3205b764ffdc230fb"
+  }
+}
