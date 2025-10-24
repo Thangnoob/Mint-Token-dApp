@@ -58,7 +58,7 @@ Upgrade: Deploy new implementation → Proxy points to new logic
 - UUPS upgradeable contract
 - Merkle tree verification cho claims
 - One-time claim per address
-- Admin có thể update merkle root và upgrade
+- Admin có thể update merkle root
 
 ---
 
@@ -135,21 +135,6 @@ npx hardhat run scripts/merkle/generateMerkle.ts
 
 # 3. Update contract (với ADMIN_ADDRESS)
 npx hardhat run scripts/airdrop/setMerkleRoot.ts --network <network>
-```
-
-### 6. **Upgrade Contract (Optional)**
-
-```bash
-# 1. Edit contract
-vim contracts/Airdrop.sol
-
-# 2. Compile
-npx hardhat compile
-
-# 3. Upgrade
-npx hardhat run scripts/upgrade/upgrade-airdrop.ts --network <network>
-
-# Proxy address không đổi, implementation mới, data preserved ✅
 ```
 
 ---
@@ -240,13 +225,6 @@ npx hardhat run scripts/airdrop/2_airdrop.ts --network sepolia
 | `claim.ts`         | Claim cho địa chỉ cụ thể            | all       |
 | `setMerkleRoot.ts` | Update merkle root                  | all       |
 
-### Upgrade
-
-| Script                 | Mục đích                  | Network   |
-| ---------------------- | ------------------------- | --------- |
-| `test-upgrade-flow.ts` | Test upgrade flow         | localhost |
-| `upgrade-airdrop.ts`   | Upgrade deployed contract | all       |
-
 ---
 
 ## 🔧 Utility Scripts
@@ -315,9 +293,9 @@ npx hardhat coverage
 
 ### Airdrop Contract
 
-| Role                 | Permissions            | Who Has It             |
-| -------------------- | ---------------------- | ---------------------- |
-| `DEFAULT_ADMIN_ROLE` | Upgrade, setMerkleRoot | Deployer (admin param) |
+| Role                 | Permissions   | Who Has It             |
+| -------------------- | ------------- | ---------------------- |
+| `DEFAULT_ADMIN_ROLE` | setMerkleRoot | Deployer (admin param) |
 
 ---
 
@@ -365,8 +343,7 @@ Sau deploy, files được tạo trong `deployments/<network>/`:
 ```
 ├── contracts/
 │   ├── Airdrop.sol              # Main airdrop contract (upgradeable)
-│   ├── MyMintableToken.sol      # ERC20 token
-│   └── v2/                      # Upgrade versions (optional)
+│   └── MyMintableToken.sol      # ERC20 token
 ├── deploy/
 │   └── deploy.ts                # Deployment script
 ├── scripts/
@@ -375,14 +352,11 @@ Sau deploy, files được tạo trong `deployments/<network>/`:
 │   │   ├── recipients.json      # Input: Recipients list
 │   │   ├── merkle.json          # Output: Root + proofs
 │   │   └── tree-structure.json  # Output: Debug info
-│   ├── airdrop/
-│   │   ├── 1_airdrop.ts         # Localhost testing
-│   │   ├── 2_airdrop.ts         # Sepolia testing
-│   │   ├── claim.ts             # Claim utility
-│   │   └── setMerkleRoot.ts     # Update root utility
-│   └── upgrade/
-│       ├── test-upgrade-flow.ts # Test upgrade locally
-│       └── upgrade-airdrop.ts   # Upgrade deployed contract
+│   └── airdrop/
+│       ├── 1_airdrop.ts         # Localhost testing
+│       ├── 2_airdrop.ts         # Sepolia testing
+│       ├── claim.ts             # Claim utility
+│       └── setMerkleRoot.ts     # Update root utility
 ├── test/
 │   ├── MyMintableToken.test.ts  # Token tests
 │   └── Airdrop.test.ts          # Airdrop tests
@@ -416,9 +390,6 @@ npx hardhat run scripts/airdrop/2_airdrop.ts --network sepolia
 # Utilities
 npx hardhat run scripts/airdrop/claim.ts --network <network>
 npx hardhat run scripts/airdrop/setMerkleRoot.ts --network <network>
-
-# Upgrade
-npx hardhat run scripts/upgrade/upgrade-airdrop.ts --network <network>
 ```
 
 ---
