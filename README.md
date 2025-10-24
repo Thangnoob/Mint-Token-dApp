@@ -300,7 +300,6 @@ npx hardhat coverage
 
 - ✅ Token: Minting, burning, roles, ERC20 functions
 - ✅ Airdrop: Claims, proofs, double-claim prevention, merkle updates
-- ✅ Integration: Full flows, upgrades, multiple users
 
 ---
 
@@ -386,8 +385,7 @@ Sau deploy, files được tạo trong `deployments/<network>/`:
 │       └── upgrade-airdrop.ts   # Upgrade deployed contract
 ├── test/
 │   ├── MyMintableToken.test.ts  # Token tests
-│   ├── Airdrop.test.ts          # Airdrop tests
-│   └── Integration.test.ts      # E2E tests
+│   └── Airdrop.test.ts          # Airdrop tests
 └── deployments/                 # Deployment artifacts
     ├── localhost/
     └── sepolia/
@@ -439,5 +437,3 @@ npx hardhat run scripts/upgrade/upgrade-airdrop.ts --network <network>
 ISC
 
 ---
-
-**Made with ❤️ by nexm**
