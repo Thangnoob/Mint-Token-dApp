@@ -1,180 +1,175 @@
-import { ethers } from "hardhat";
-import { MerkleTree } from "merkletreejs";
-import { AirdropWithAccessControl, MyMintableToken } from "../../typechain/contracts";
+import { ethers, network } from "hardhat";
+import { Airdrop, MyMintableToken } from "../../typechain";
+import { Airdrop__factory } from "../../typechain/factories/contracts/Airdrop.sol";
+import { MyMintableToken__factory } from "../../typechain/factories/contracts";
 import fs from "fs";
 
 async function main() {
-  console.log("=== Airdrop Testing Script ===");
+  console.log("🧪 Testing Airdrop on", network.name);
 
-  // Get signers
-  const [deployer, user1, user2, user3] = await ethers.getSigners();
-  console.log("Available accounts:");
-  console.log("- Deployer:", deployer.address);
-  console.log("- User1:", user1.address);
-  console.log("- User2:", user2.address);
-  console.log("- User3:", user3.address);
+  const [deployer, user1, user2] = await ethers.getSigners();
 
-  // Connect to deployed contracts
-  const tokenContract: MyMintableToken = await ethers.getContract("MyMintableToken");
-  const airdropContract: AirdropWithAccessControl = await ethers.getContract("AirdropWithAccessControl");
-
-  console.log("\n=== Contract Information ===");
-  console.log("Token Address:", await tokenContract.getAddress());
-  console.log("Airdrop Address:", await airdropContract.getAddress());
-  console.log("Merkle Root:", await airdropContract.merkleRoot());
-
-  // Test 1: Check if contracts are paused
-  console.log("\n=== Test 1: Contract State ===");
-  console.log("Is Paused:", await airdropContract.isPaused());
-  console.log("Total Claimed:", ethers.formatEther(await airdropContract.totalClaimed()), "MMT");
-
-  // Test 2: Test pause/unpause functionality
-  console.log("\n=== Test 2: Pause/Unpause ===");
-  try {
-    await airdropContract.pause();
-    console.log("✓ Contract paused successfully");
-    console.log("Is Paused:", await airdropContract.isPaused());
-
-    await airdropContract.unpause();
-    console.log("✓ Contract unpaused successfully");
-    console.log("Is Paused:", await airdropContract.isPaused());
-  } catch (error) {
-    console.log("✗ Pause/Unpause test failed:", error);
+  const deploymentPath = `deployments/${network.name}/Airdrop.json`;
+  if (!fs.existsSync(deploymentPath)) {
+    throw new Error(`❌ Deployment not found for ${network.name}`);
   }
 
-  // Test 3: Test role management
-  console.log("\n=== Test 3: Role Management ===");
+  const deploymentInfo = JSON.parse(fs.readFileSync(deploymentPath, "utf8"));
+  const airdropAddress = deploymentInfo.address;
+
+  const tokenDeploymentPath = `deployments/${network.name}/MyMintableToken.json`;
+  const tokenDeploymentInfo = JSON.parse(fs.readFileSync(tokenDeploymentPath, "utf8"));
+  const tokenAddress = tokenDeploymentInfo.address;
+
+  const airdrop = Airdrop__factory.connect(airdropAddress, deployer);
+  const token = MyMintableToken__factory.connect(tokenAddress, deployer);
+
+  const merkleRoot = await airdrop.merkleRoot();
+
+  let recipients = [];
+  let merkleJsonRoot = "";
   try {
-    const PAUSER_ROLE = await airdropContract.PAUSER_ROLE();
-    const ADMIN_ROLE = await airdropContract.ADMIN_ROLE();
-
-    console.log("Deployer has Admin role:", await airdropContract.hasRole(ADMIN_ROLE, deployer.address));
-    console.log("Deployer has Pauser role:", await airdropContract.hasRole(PAUSER_ROLE, deployer.address));
-
-    // Grant pauser role to user1
-    await airdropContract.grantRole(PAUSER_ROLE, user1.address);
-    console.log("✓ Granted Pauser role to User1");
-    console.log("User1 has Pauser role:", await airdropContract.hasRole(PAUSER_ROLE, user1.address));
+    const merkleData = JSON.parse(fs.readFileSync("scripts/merkle/merkle.json", "utf8"));
+    recipients = merkleData.recipients || [];
+    merkleJsonRoot = merkleData.root || "";
   } catch (error) {
-    console.log("✗ Role management test failed:", error);
+    console.log("❌ No merkle.json found");
   }
 
-  // Test 4: Test claiming functionality
-  console.log("\n=== Test 4: Claim Testing ===");
+  if (merkleJsonRoot && merkleJsonRoot !== merkleRoot) {
+    console.log("⚠️  Root mismatch! Run: npx hardhat run scripts/airdrop/setMerkleRoot.ts");
+  }
 
-  // Read merkle data from generated file
-  const merkleData = JSON.parse(fs.readFileSync("scripts/merkle/merkle.json", "utf8"));
-  const recipients = merkleData.recipients;
-  const originalMerkleRoot = await airdropContract.merkleRoot();
+  console.log("Airdrop:", airdropAddress);
+  console.log("Token:", tokenAddress);
+  console.log("Root:", merkleRoot);
+  console.log("Recipients:", recipients.length);
 
-  console.log("Merkle Root from file:", merkleData.root);
-  console.log("Contract Merkle Root:", originalMerkleRoot);
-  console.log("Roots match:", merkleData.root === originalMerkleRoot);
-  console.log("Recipients count:", recipients.length);
+  // Test 1: setMerkleRoot (Admin)
+  console.log("\n[Test 1] Admin setMerkleRoot");
+  try {
+    const originalRoot = await airdrop.merkleRoot();
+    const newRoot = "0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef";
+    await (await airdrop.connect(deployer).setMerkleRoot(newRoot)).wait();
+    console.log("✓ Updated:", (await airdrop.merkleRoot()) === newRoot);
+    await (await airdrop.setMerkleRoot(originalRoot)).wait();
+    console.log("✓ Restored");
+  } catch (error) {
+    console.log("✗", (error as Error).message);
+  }
 
-  // Test claim for first recipient in merkle tree
-  if (recipients.length > 0) {
-    try {
-      const testRecipient = recipients[0];
-      const user1Amount = BigInt(testRecipient.amount);
-      const proof = testRecipient.proof;
+  // Test 2: setMerkleRoot (Non-Admin)
+  console.log("\n[Test 2] Non-admin blocked");
+  try {
+    await airdrop.connect(user1).setMerkleRoot("0x0000000000000000000000000000000000000000000000000000000000000000");
+    console.log("✗ Not blocked!");
+  } catch (error) {
+    console.log("✓ Blocked");
+  }
 
-      console.log("Test recipient address:", testRecipient.account);
-      console.log("Test recipient amount:", ethers.formatEther(user1Amount), "MMT");
-      console.log("Merkle proof length:", proof.length);
+  // Test 3: Valid Claim
+  console.log("\n[Test 3] Valid claim");
+  if (recipients.length === 0) {
+    console.log("❌ No recipients");
+    return;
+  }
 
-      // Check if recipient can claim
-      const canClaim = await airdropContract.canClaim(testRecipient.account, user1Amount, proof);
-      console.log("Recipient can claim:", canClaim);
+  if (merkleJsonRoot && merkleJsonRoot !== merkleRoot) {
+    console.log("⚠️  Root mismatch. Run: npx hardhat run scripts/airdrop/setMerkleRoot.ts");
+    return;
+  }
 
-      if (canClaim) {
-        // Get initial balance
-        const initialBalance = await tokenContract.balanceOf(testRecipient.account);
-        console.log("Initial balance:", ethers.formatEther(initialBalance), "MMT");
+  const testRecipient = recipients[0];
+  const amount = BigInt(testRecipient.amount);
+  const proof = testRecipient.proof;
 
-        // Attempt to claim (need to impersonate account for testing)
-        await ethers.provider.send("hardhat_impersonateAccount", [testRecipient.account]);
-        const recipientSigner = await ethers.getSigner(testRecipient.account);
+  const hasClaimed = await airdrop.hasClaimed(testRecipient.account);
+  console.log("Address:", testRecipient.account);
+  console.log("Claimed:", hasClaimed);
 
-        // Fund with ETH for gas
-        await deployer.sendTransaction({
-          to: testRecipient.account,
-          value: ethers.parseEther("1"),
-        });
+  if (!hasClaimed) {
+    if (network.name === "localhost" || network.name === "hardhat") {
+      await ethers.provider.send("hardhat_impersonateAccount", [testRecipient.account]);
+      const recipientSigner = await ethers.getSigner(testRecipient.account);
+      await deployer.sendTransaction({ to: testRecipient.account, value: ethers.parseEther("1") });
 
-        const claimTx = await airdropContract.connect(recipientSigner).claim(user1Amount, proof);
-        await claimTx.wait();
-        console.log("✓ Claim successful!");
+      const initialBalance = await token.balanceOf(testRecipient.account);
+      await (await airdrop.connect(recipientSigner).claim(amount, proof)).wait();
+      const finalBalance = await token.balanceOf(testRecipient.account);
 
-        // Check final balance
-        const finalBalance = await tokenContract.balanceOf(testRecipient.account);
-        console.log("Final balance:", ethers.formatEther(finalBalance), "MMT");
-        console.log("Tokens claimed:", ethers.formatEther(finalBalance - initialBalance), "MMT");
-      } else {
-        console.log("✗ Recipient cannot claim (not in merkle tree or already claimed)");
-      }
-    } catch (error) {
-      console.log("✗ Claim test failed:", error);
+      console.log("✓ Claimed:", ethers.formatEther(finalBalance - initialBalance), "tokens");
+    } else if (network.name === "sepolia") {
+      console.log("⚠️  Sepolia: Use frontend or claim.ts script");
     }
   } else {
-    console.log("No recipients found in merkle data");
+    console.log("✓ Already claimed");
   }
 
-  // Test 5: Test invalid claim
-  console.log("\n=== Test 5: Invalid Claim Test ===");
-  try {
-    if (recipients.length > 1) {
-      const testRecipient = recipients[1];
-      const invalidAmount = ethers.parseEther("999");
-      const invalidProof = testRecipient.proof; // Using wrong proof
+  // Test 4: Invalid Claim
+  console.log("\n[Test 4] Invalid claim rejected");
 
-      const canClaimInvalid = await airdropContract.canClaim(testRecipient.account, invalidAmount, invalidProof);
-      console.log("Can claim with invalid amount:", canClaimInvalid);
+  if (network.name === "localhost" || network.name === "hardhat") {
+    try {
+      const randomAddress = ethers.Wallet.createRandom().address;
+      await ethers.provider.send("hardhat_impersonateAccount", [randomAddress]);
+      const randomSigner = await ethers.getSigner(randomAddress);
+      await deployer.sendTransaction({ to: randomAddress, value: ethers.parseEther("1") });
 
-      if (!canClaimInvalid) {
-        console.log("✓ Invalid claim correctly rejected");
-      } else {
-        console.log("✗ Invalid claim was not rejected");
-      }
-    } else {
-      console.log("Not enough recipients for invalid claim test");
+      await airdrop
+        .connect(randomSigner)
+        .claim(ethers.parseEther("100"), ["0x0000000000000000000000000000000000000000000000000000000000000000"]);
+      console.log("✗ Not rejected!");
+    } catch (error) {
+      console.log("✓ Rejected");
     }
-  } catch (error) {
-    console.log("✓ Invalid claim correctly failed:", (error as Error).message);
+  } else {
+    console.log("⚠️  Skipped (localhost only)");
   }
 
-  // Test 6: Test double claim
-  console.log("\n=== Test 6: Double Claim Test ===");
-  try {
-    if (recipients.length > 0) {
-      const testRecipient = recipients[0];
-      const amount = BigInt(testRecipient.amount);
-      const proof = testRecipient.proof;
+  // Test 5: Double Claim Prevention
+  console.log("\n[Test 5] Double claim prevented");
 
-      // Try to claim again
-      const canClaimAgain = await airdropContract.canClaim(testRecipient.account, amount, proof);
-      console.log("Can claim again:", canClaimAgain);
-
-      if (!canClaimAgain) {
-        console.log("✓ Double claim correctly prevented");
-      } else {
-        console.log("✗ Double claim was not prevented");
-      }
-    } else {
-      console.log("No recipients available for double claim test");
+  if (network.name === "localhost" || network.name === "hardhat") {
+    try {
+      await ethers.provider.send("hardhat_impersonateAccount", [testRecipient.account]);
+      const recipientSigner = await ethers.getSigner(testRecipient.account);
+      await airdrop.connect(recipientSigner).claim(amount, proof);
+      console.log("✗ Not prevented!");
+    } catch (error) {
+      console.log("✓ Prevented");
     }
-  } catch (error) {
-    console.log("✓ Double claim correctly failed:", (error as Error).message);
+  } else {
+    console.log("⚠️  Skipped (localhost only)");
   }
 
-  console.log("\n=== Test Summary ===");
-  console.log("All airdrop tests completed!");
-  console.log("Total Claimed:", ethers.formatEther(await airdropContract.totalClaimed()), "MMT");
+  // Test 6: Multiple Recipients
+  console.log("\n[Test 6] Multiple recipients");
+
+  if (recipients.length > 1) {
+    const recipient2 = recipients[1];
+    const hasClaimed2 = await airdrop.hasClaimed(recipient2.account);
+
+    if (!hasClaimed2 && (network.name === "localhost" || network.name === "hardhat")) {
+      await ethers.provider.send("hardhat_impersonateAccount", [recipient2.account]);
+      const recipient2Signer = await ethers.getSigner(recipient2.account);
+      await deployer.sendTransaction({ to: recipient2.account, value: ethers.parseEther("1") });
+
+      const initialBalance2 = await token.balanceOf(recipient2.account);
+      await (await airdrop.connect(recipient2Signer).claim(BigInt(recipient2.amount), recipient2.proof)).wait();
+      const finalBalance2 = await token.balanceOf(recipient2.account);
+
+      console.log("✓ Claimed:", ethers.formatEther(finalBalance2 - initialBalance2), "tokens");
+    } else {
+      console.log("✓ Already claimed or sepolia");
+    }
+  } else {
+    console.log("⚠️  Only 1 recipient");
+  }
+
+  console.log("\n✅ All tests completed!");
 }
 
-main()
-  .then(() => process.exit(0))
-  .catch((error) => {
-    console.error(error);
-    process.exit(1);
-  });
+main().catch((err) => {
+  console.error("❌ Script failed:", err);
+  process.exitCode = 1;
+});

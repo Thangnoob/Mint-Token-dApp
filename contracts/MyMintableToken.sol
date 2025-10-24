@@ -26,20 +26,4 @@ contract MyMintableToken is ERC20, AccessControl {
         emit Burn(from, amount);
     }
     
-    // Role management functions
-    function grantMinterRole(address account) external onlyRole(DEFAULT_ADMIN_ROLE) {
-        _grantRole(MINTER_ROLE, account);
-    }
-    
-    function revokeMinterRole(address account) external onlyRole(DEFAULT_ADMIN_ROLE) {
-        _revokeRole(MINTER_ROLE, account);
-    }
-    
-    function grantBurnerRole(address account) external onlyRole(DEFAULT_ADMIN_ROLE) {
-        _grantRole(BURNER_ROLE, account);
-    }
-    
-    function revokeBurnerRole(address account) external onlyRole(DEFAULT_ADMIN_ROLE) {
-        _revokeRole(BURNER_ROLE, account);
-    }
 }

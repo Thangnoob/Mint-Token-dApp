@@ -1,83 +1,73 @@
 import { HardhatRuntimeEnvironment } from "hardhat/types";
 import { DeployFunction } from "hardhat-deploy/types";
 import { writeFileSync, readFileSync } from "fs";
+import { ethers } from "hardhat";
+import { MyMintableToken__factory } from "../typechain/factories/contracts";
 
 const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const { deployments, getNamedAccounts, ethers } = hre;
   const { deploy } = deployments;
   const { deployer } = await getNamedAccounts();
 
-  console.log("====================");
-  console.log("Network:", hre.network.name);
-  console.log("Deploying contracts with account:", deployer);
-  console.log("====================");
+  console.log("🚀 Deploying on", hre.network.name);
+  console.log("Deployer:", deployer);
 
   // Deploy MyMintableToken
-  console.log("====================");
-  console.log("Deploy MyMintableToken Contract");
-  console.log("====================");
   const tokenDeployment = await deploy("MyMintableToken", {
     contract: "MyMintableToken",
     from: deployer,
     args: [],
     log: true,
     autoMine: true,
-    skipIfAlreadyDeployed: false,
+    skipIfAlreadyDeployed: true,
   });
 
-  // Read merkle tree data from files
+  // Read merkle data
   const merkleData = JSON.parse(readFileSync("scripts/merkle/merkle.json", "utf8"));
   const merkleRoot = merkleData.root;
-
-  // Read recipients data for reference
   const recipientsData = merkleData.recipients || [];
 
-  console.log("Merkle Root:", merkleRoot);
-  console.log("Recipients count:", recipientsData.length);
+  console.log("Merkle root:", merkleRoot);
+  console.log("Recipients:", recipientsData.length);
 
-  // Deploy AirdropWithAccessControl
-  console.log("====================");
-  console.log("Deploy AirdropWithAccessControl Contract");
-  console.log("====================");
-  const airdropDeployment = await deploy("AirdropWithAccessControl", {
-    contract: "AirdropWithAccessControl",
+  // Deploy Airdrop (Upgradeable)
+
+  // Deploy proxy for upgradeable contract
+  const airdropDeployment = await deploy("Airdrop", {
+    proxy: {
+      proxyContract: "UUPS",
+      execute: {
+        init: {
+          methodName: "initialize",
+          args: [tokenDeployment.address, merkleRoot, deployer],
+        },
+      },
+      upgradeFunction: {
+        methodName: "upgradeToAndCall",
+        upgradeArgs: ["{implementation}", "{data}"],
+      },
+    },
+    contract: "Airdrop",
     from: deployer,
-    args: [tokenDeployment.address, merkleRoot],
     log: true,
     autoMine: true,
-    skipIfAlreadyDeployed: false,
+    skipIfAlreadyDeployed: true,
   });
 
-  // Grant MINTER_ROLE to airdrop contract
-  const tokenContract = await ethers.getContractAt("MyMintableToken", tokenDeployment.address);
-  await tokenContract.grantMinterRole(airdropDeployment.address);
-  console.log("Granted MINTER_ROLE to AirdropWithAccessControl contract");
+  // Grant MINTER_ROLE to airdrop
+  const [signer] = await ethers.getSigners();
+  const tokenContract = MyMintableToken__factory.connect(tokenDeployment.address, signer);
+  const MINTER_ROLE = await tokenContract.MINTER_ROLE();
+  const hasRole = await tokenContract.hasRole(MINTER_ROLE, airdropDeployment.address);
 
-  // No need to mint tokens beforehand - they will be minted when claimed
-  console.log("Tokens will be minted when users claim");
+  if (!hasRole) {
+    await tokenContract.grantRole(MINTER_ROLE, airdropDeployment.address);
+    console.log("✅ Granted MINTER_ROLE");
+  }
 
-  // Save deployment info
-  const deploymentInfo = {
-    network: hre.network.name,
-    tokenAddress: tokenDeployment.address,
-    airdropAddress: airdropDeployment.address,
-    merkleRoot,
-    recipients: recipientsData,
-    merkleTree: merkleData,
-  };
-
-  const deploymentFile = `deployments/${hre.network.name}/AirdropWithAccessControl.json`;
-  writeFileSync(deploymentFile, JSON.stringify(deploymentInfo, null, 2));
-  console.log(`Deployment info saved to ${deploymentFile}`);
-
-  // Display contract addresses
-  console.log("====================");
-  console.log("Deployment Summary");
-  console.log("====================");
-  console.log("Token Address:", tokenDeployment.address);
-  console.log("Airdrop Address:", airdropDeployment.address);
-  console.log("Merkle Root:", merkleRoot);
-  console.log("Recipients:", recipientsData.length);
+  console.log("\n✅ Deployed successfully!");
+  console.log("Token:", tokenDeployment.address);
+  console.log("Airdrop:", airdropDeployment.address);
 };
 
 func.tags = ["deploy"];
